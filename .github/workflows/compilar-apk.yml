@@ -1,0 +1,57 @@
+
+name: Gerar APK do Brasil Politico
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compilar:
+    name: Compilar aplicativo Android
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar arquivos do repositorio
+        uses: actions/checkout@v4
+
+      - name: Extrair projeto Brasil Politico
+        run: |
+          unzip -o Brasil_Politico_Projeto_Modular_v0.1.zip -d projeto
+          test -f projeto/Brasil_Politico/package.json
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar dependencias e preparar Android
+        working-directory: projeto/Brasil_Politico
+        run: |
+          npm install
+          npx cap add android
+          npx cap sync android
+          npm test
+
+      - name: Gerar arquivo APK
+        working-directory: projeto/Brasil_Politico/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Disponibilizar APK para download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Brasil-Politico-APK
+          path: projeto/Brasil_Politico/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
